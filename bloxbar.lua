@@ -1,4 +1,4 @@
--- Bloxburg Pizza Auto Farm v7 (Очень Быстрый)
+-- Bloxburg Pizza Auto Farm v9 (Реальное движение + Сильный Буст)
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
@@ -16,14 +16,14 @@ ScreenGui.Parent = player:WaitForChild("PlayerGui")
 local Icon = Instance.new("ImageButton")
 Icon.Size = UDim2.new(0, 70, 0, 70)
 Icon.Position = UDim2.new(0, 20, 0, 20)
-Icon.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+Icon.BackgroundColor3 = Color3.fromRGB(255, 70, 70)
 Icon.Image = "rbxassetid://3926305904"
 Icon.Parent = ScreenGui
 Instance.new("UICorner", Icon).CornerRadius = UDim.new(1,0)
 
 local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 270, 0, 200)
-Frame.Position = UDim2.new(0.5, -135, 0.5, -100)
+Frame.Size = UDim2.new(0, 280, 0, 200)
+Frame.Position = UDim2.new(0.5, -140, 0.5, -100)
 Frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 Frame.Visible = false
 Frame.Parent = ScreenGui
@@ -32,9 +32,9 @@ Instance.new("UICorner", Frame).CornerRadius = UDim.new(0,16)
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1,0,0,45)
 Title.BackgroundTransparency = 1
-Title.Text = "🍕 Pizza Farm v7 (Очень быстрый)"
+Title.Text = "🍕 Pizza Farm v9 (Реальное движение)"
 Title.TextColor3 = Color3.new(1,1,1)
-Title.TextSize = 19
+Title.TextSize = 18
 Title.Font = Enum.Font.GothamBold
 Title.Parent = Frame
 
@@ -66,21 +66,17 @@ ToggleBtn.MouseButton1Click:Connect(function()
     ToggleBtn.BackgroundColor3 = AUTO_FARM and Color3.fromRGB(190,0,0) or Color3.fromRGB(0,190,0)
 end)
 
--- === СИЛЬНОЕ УСКОРЕНИЕ МОПЕДА ===
-local function superBoostMoped()
+-- === СИЛЬНЫЙ БУСТ МОПЕДА ===
+local function superBoost()
     if humanoid.Sit then
-        for _, part in pairs(character:GetDescendants()) do
-            if part:IsA("BasePart") and part.Velocity then
-                local vel = part.Velocity
-                part.Velocity = vel * 4.5   -- очень сильный буст
-            end
-        end
-        
-        -- Дополнительный импульс в направлении движения
         local seat = character:FindFirstChildWhichIsA("VehicleSeat")
-        if seat and seat.Occupant then
+        if seat then
             local direction = root.CFrame.LookVector
-            root.AssemblyLinearVelocity = direction * 120  -- мощный толчок вперёд
+            for _, part in pairs(seat.Parent:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.AssemblyLinearVelocity = direction * 95 + Vector3.new(0, 10, 0)
+                end
+            end
         end
     end
 end
@@ -92,8 +88,8 @@ end
 local function getPizza()
     for _, obj in pairs(workspace:GetDescendants()) do
         if obj.Name:lower():find("pizza") and obj:IsA("BasePart") and obj.Transparency < 0.9 then
-            if (obj.Position - root.Position).Magnitude < 70 then
-                root.CFrame = obj.CFrame + Vector3.new(0, 4, 0)
+            if (obj.Position - root.Position).Magnitude < 60 then
+                root.CFrame = obj.CFrame + Vector3.new(0,4,0)
                 firetouchinterest(obj, root, 0)
                 wait(0.2)
                 firetouchinterest(obj, root, 1)
@@ -104,50 +100,58 @@ local function getPizza()
     return false
 end
 
-local function findCustomerPos()
+local function findCustomerArrow()
     for _, v in pairs(workspace:GetDescendants()) do
-        if (v.Name:lower():find("arrow") or v.Name:lower():find("customer") or v.Name:lower():find("target")) 
-           and v:IsA("BasePart") and v.Transparency < 1 then
-            return v.Position + Vector3.new(0, 7, 0)
+        if v:IsA("BasePart") and v.Transparency < 1 and 
+           (v.Name:lower():find("arrow") or v.Name:lower():find("customer") or v.Name:lower():find("target")) then
+            return v.Position + Vector3.new(0, 8, 0)
         end
     end
     return nil
 end
 
-local function moveTo(target)
+local function moveToCustomer()
+    local target = findCustomerArrow()
     if not target then return end
-    local dist = (root.Position - target).Magnitude
-    if dist < 18 then return end
 
-    -- Телепорт только когда очень далеко
-    if dist > 90 then
-        root.CFrame = CFrame.new(target + Vector3.new(0, 6, 0))
-        wait(0.35)
-    else
-        -- Нормальное движение + сильный буст
-        local path = PathfindingService:CreatePath({
-            AgentRadius = 3,
-            AgentHeight = 5,
-            AgentCanJump = true,
-            WaypointSpacing = 8
-        })
-        path:ComputeAsync(root.Position, target)
-        
-        if path.Status == Enum.PathStatus.Success then
-            for _, wp in pairs(path:GetWaypoints()) do
-                if not AUTO_FARM then break end
-                humanoid:MoveTo(wp.Position)
-                humanoid.MoveToFinished:Wait(1.2)
-                superBoostMoped()
+    local dist = (root.Position - target).Magnitude
+    if dist < 20 then return end
+
+    local path = PathfindingService:CreatePath({
+        AgentRadius = 4,
+        AgentHeight = 6,
+        AgentCanJump = true,
+        WaypointSpacing = 6,
+        Costs = {Water = 20}
+    })
+
+    path:ComputeAsync(root.Position, target)
+
+    if path.Status == Enum.PathStatus.Success then
+        for _, wp in pairs(path:GetWaypoints()) do
+            if not AUTO_FARM then break end
+            humanoid:MoveTo(wp.Position)
+            superBoost()
+            if not humanoid.MoveToFinished:Wait(2) then
+                superBoost()
+                wait(0.5)
             end
         end
     end
-    superBoostMoped()
 end
 
--- Главный цикл + постоянный буст
+-- Постоянный буст (очень важно для скорости)
 spawn(function()
-    while wait(0.5) do
+    while wait(0.12) do
+        if AUTO_FARM and isOnMoped() then
+            superBoost()
+        end
+    end
+end)
+
+-- Главный цикл
+spawn(function()
+    while wait(0.7) do
         if AUTO_FARM then
             character = player.Character or player.CharacterAdded:Wait()
             humanoid = character:WaitForChild("Humanoid")
@@ -156,36 +160,22 @@ spawn(function()
             if not isOnMoped() then
                 for _, seat in pairs(workspace:GetDescendants()) do
                     if seat:IsA("VehicleSeat") and (seat.Name:lower():find("moped") or seat.Name:lower():find("delivery")) then
-                        if (seat.Position - root.Position).Magnitude < 300 then
-                            root.CFrame = seat.CFrame * CFrame.new(0, 4, 0)
-                            wait(0.4)
-                            humanoid.Sit = true
-                            break
-                        end
+                        humanoid:MoveTo(seat.Position)
+                        wait(1.2)
+                        root.CFrame = seat.CFrame * CFrame.new(0, 4, 0)
+                        humanoid.Sit = true
+                        wait(0.6)
+                        break
                     end
                 end
             end
 
-            superBoostMoped()
             getPizza()
-            wait(0.3)
+            wait(0.4)
 
-            local customerPos = findCustomerPos()
-            if customerPos then
-                moveTo(customerPos)
-                wait(0.8)
-            end
+            moveToCustomer()
         end
     end
 end)
 
--- Постоянный буст каждые 0.2 секунды (очень важно!)
-spawn(function()
-    while wait(0.2) do
-        if AUTO_FARM then
-            superBoostMoped()
-        end
-    end
-end)
-
-print("🍕 v7 Очень быстрый загружен! Сядь на мопед с пиццей и включи.")
+print("🍕 v9 Реальное движение к стрелке загружено! Сядь на мопед вручную, возьми пиццу и включи.")

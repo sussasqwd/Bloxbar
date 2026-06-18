@@ -1,4 +1,4 @@
--- Bloxburg Pizza Auto Farm v16 (Поворот + Сдача + Автозаказ)
+-- Bloxburg Pizza Auto Farm v17 (Сильный Поворот)
 wait(2)
 local player = game.Players.LocalPlayer
 
@@ -49,13 +49,20 @@ local function findCustomer()
             local n = v.Name:lower()
             if n:find("arrow") or n:find("target") or n:find("customer") then
                 local dist = (v.Position - player.Character.HumanoidRootPart.Position).Magnitude
-                if dist > 40 and dist < 800 then
+                if dist > 45 and dist < 900 then
                     return v
                 end
             end
         end
     end
     return nil
+end
+
+local function forceTurnTo(targetPos)
+    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    local direction = (targetPos - root.Position).Unit
+    root.CFrame = CFrame.lookAt(root.Position, root.Position + direction)
 end
 
 local function gentleBoost()
@@ -65,36 +72,20 @@ local function gentleBoost()
     local dir = root.CFrame.LookVector
     for _, part in pairs(char:GetDescendants()) do
         if part:IsA("BasePart") then
-            part.AssemblyLinearVelocity = dir * 60 + Vector3.new(0, 18, 0)
+            part.AssemblyLinearVelocity = dir * 58 + Vector3.new(0, 15, 0)
         end
     end
 end
 
-local function deliverPizza(customerPart)
-    if not customerPart then return end
-    local root = player.Character.HumanoidRootPart
-    
-    -- Подъезжаем ближе
-    root.CFrame = CFrame.lookAt(root.Position, customerPart.Position)
-    wait(0.6)
-    
-    -- Пытаемся сдать пиццу
-    for _, pizza in pairs(player.Character:GetDescendants()) do
-        if pizza.Name:lower():find("pizza") then
-            firetouchinterest(pizza, customerPart, 0)
-            wait(0.2)
-            firetouchinterest(pizza, customerPart, 1)
-            break
-        end
-    end
-    wait(1.5) -- ждём оплату
-end
-
--- Постоянный буст
+-- Постоянный буст + поворот
 spawn(function()
-    while wait(0.18) do
+    while wait(0.1) do
         if AUTO_FARM then
             gentleBoost()
+            local customer = findCustomer()
+            if customer then
+                forceTurnTo(customer.Position)
+            end
         end
     end
 end)
@@ -107,7 +98,7 @@ local function moveToCustomer()
     local path = PathfindingService:CreatePath({
         AgentRadius = 4,
         AgentHeight = 6,
-        WaypointSpacing = 5
+        WaypointSpacing = 6
     })
 
     path:ComputeAsync(player.Character.HumanoidRootPart.Position, targetPos)
@@ -115,35 +106,44 @@ local function moveToCustomer()
     if path.Status == Enum.PathStatus.Success then
         for _, wp in pairs(path:GetWaypoints()) do
             if not AUTO_FARM then break end
-            local root = player.Character.HumanoidRootPart
-            local dir = (wp.Position - root.Position).Unit
-            root.CFrame = CFrame.lookAt(root.Position, root.Position + dir)
             
+            forceTurnTo(wp.Position)        -- сильный поворот
             player.Character.Humanoid:MoveTo(wp.Position)
             gentleBoost()
-            player.Character.Humanoid.MoveToFinished:Wait(1.4)
+            
+            wait(0.8)  -- чуть быстрее
         end
-        deliverPizza(customer)
+        
+        -- Сдача пиццы
+        wait(0.5)
+        forceTurnTo(customer.Position)
+        for _, pizza in pairs(player.Character:GetDescendants()) do
+            if pizza.Name:lower():find("pizza") then
+                firetouchinterest(pizza, customer, 0)
+                wait(0.3)
+                firetouchinterest(pizza, customer, 1)
+                break
+            end
+        end
     end
 end
 
 -- Главный цикл
 spawn(function()
-    while wait(0.8) do
+    while wait(0.7) do
         if AUTO_FARM then
             local char = player.Character or player.CharacterAdded:Wait()
             local hum = char:WaitForChild("Humanoid")
             local root = char:WaitForChild("HumanoidRootPart")
 
-            -- Садимся на мопед
             if not hum.Sit then
                 for _, seat in pairs(workspace:GetDescendants()) do
                     if seat:IsA("VehicleSeat") and seat.Name:lower():find("moped") then
                         hum:MoveTo(seat.Position)
-                        wait(1.2)
+                        wait(1)
                         root.CFrame = seat.CFrame * CFrame.new(0,4,0)
                         hum.Sit = true
-                        wait(0.8)
+                        wait(0.6)
                         break
                     end
                 end
@@ -152,14 +152,13 @@ spawn(function()
             if hasPizza() then
                 moveToCustomer()
             else
-                -- Берём новую пиццу
+                -- Берём пиццу
                 for _, p in pairs(workspace:GetDescendants()) do
-                    if p.Name:lower():find("pizza") and p.Transparency < 0.9 and (p.Position - root.Position).Magnitude < 70 then
+                    if p.Name:lower():find("pizza") and (p.Position - root.Position).Magnitude < 70 then
                         root.CFrame = p.CFrame + Vector3.new(0,4,0)
                         firetouchinterest(p, root, 0)
                         wait(0.3)
                         firetouchinterest(p, root, 1)
-                        wait(0.5)
                         break
                     end
                 end
@@ -168,4 +167,4 @@ spawn(function()
     end
 end)
 
-print("🎉 v16 Загружен! Теперь должен лучше поворачивать и сдавать пиццу.")
+print("🎉 v17 Загружен! Сильный поворот активирован.")

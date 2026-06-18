@@ -1,5 +1,7 @@
--- Bloxburg Pizza Auto Farm v11 (Фикс меню + Стабильность)
+-- Bloxburg Pizza Auto Farm v12 (Простая кнопка)
 local player = game.Players.LocalPlayer
+wait(2)
+
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local root = character:WaitForChild("HumanoidRootPart")
@@ -8,108 +10,48 @@ local PathfindingService = game:GetService("PathfindingService")
 
 local AUTO_FARM = false
 
-print("🍕 v11 Загружается...")
+print("🍕 v12 Загружается...")
 
--- === НАДЁЖНОЕ МЕНЮ ===
+-- === ОЧЕНЬ ПРОСТАЯ КНОПКА ===
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "PizzaFarmGUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
--- Иконка
-local Icon = Instance.new("TextButton")
-Icon.Size = UDim2.new(0, 80, 0, 80)
-Icon.Position = UDim2.new(0, 30, 0, 30)
-Icon.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
-Icon.Text = "🍕"
-Icon.TextSize = 40
-Icon.TextColor3 = Color3.new(1,1,1)
-Icon.Parent = ScreenGui
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(0, 90, 0, 90)
+ToggleButton.Position = UDim2.new(0, 30, 1, -130)  -- внизу слева
+ToggleButton.BackgroundColor3 = Color3.fromRGB(220, 20, 20)
+ToggleButton.Text = "🍕\nOFF"
+ToggleButton.TextColor3 = Color3.new(1,1,1)
+ToggleButton.TextSize = 18
+ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.Parent = ScreenGui
 
 local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(1, 0)
-corner.Parent = Icon
+corner.Parent = ToggleButton
 
 local stroke = Instance.new("UIStroke")
-stroke.Thickness = 3
+stroke.Thickness = 4
 stroke.Color = Color3.new(1,1,1)
-stroke.Parent = Icon
+stroke.Parent = ToggleButton
 
--- Главное меню
-local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 290, 0, 220)
-Frame.Position = UDim2.new(0.5, -145, 0.5, -110)
-Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Frame.Visible = false
-Frame.Parent = ScreenGui
-
-Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 16)
-
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1,0,0,50)
-Title.BackgroundTransparency = 1
-Title.Text = "🍕 Pizza Auto Farm v11"
-Title.TextColor3 = Color3.new(1,1,1)
-Title.TextSize = 20
-Title.Font = Enum.Font.GothamBold
-Title.Parent = Frame
-
-local ToggleBtn = Instance.new("TextButton")
-ToggleBtn.Size = UDim2.new(0.85,0,0,65)
-ToggleBtn.Position = UDim2.new(0.075,0,0.35,0)
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
-ToggleBtn.Text = "ВКЛ Auto Farm"
-ToggleBtn.TextColor3 = Color3.new(1,1,1)
-ToggleBtn.TextSize = 18
-ToggleBtn.Font = Enum.Font.GothamSemibold
-ToggleBtn.Parent = Frame
-Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0,12)
-
-local Status = Instance.new("TextLabel")
-Status.Size = UDim2.new(1,0,0,30)
-Status.Position = UDim2.new(0,0,0.7,0)
-Status.BackgroundTransparency = 1
-Status.Text = "Статус: Выключен"
-Status.TextColor3 = Color3.fromRGB(200, 200, 200)
-Status.TextSize = 16
-Status.Parent = Frame
-
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 40, 0, 40)
-CloseBtn.Position = UDim2.new(1, -45, 0, 5)
-CloseBtn.BackgroundTransparency = 1
-CloseBtn.Text = "✕"
-CloseBtn.TextColor3 = Color3.new(1, 0, 0)
-CloseBtn.TextSize = 25
-CloseBtn.Parent = Frame
-
--- Клик по иконке
-Icon.MouseButton1Click:Connect(function()
-    Frame.Visible = not Frame.Visible
-    print("Меню открыто/закрыто")
-end)
-
-CloseBtn.MouseButton1Click:Connect(function()
-    Frame.Visible = false
-end)
-
-ToggleBtn.MouseButton1Click:Connect(function()
+ToggleButton.MouseButton1Click:Connect(function()
     AUTO_FARM = not AUTO_FARM
     if AUTO_FARM then
-        ToggleBtn.Text = "ВЫКЛ Auto Farm"
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
-        Status.Text = "Статус: Работает"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(20, 180, 20)
+        ToggleButton.Text = "🍕\nON"
+        print("✅ Auto Farm ВКЛ")
     else
-        ToggleBtn.Text = "ВКЛ Auto Farm"
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
-        Status.Text = "Статус: Выключен"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(220, 20, 20)
+        ToggleButton.Text = "🍕\nOFF"
+        print("⛔ Auto Farm ВЫКЛ")
     end
-    print("Auto Farm:", AUTO_FARM)
 end)
 
-print("✅ Меню должно появиться! Нажми на большую красную кнопку с 🍕")
+print("✅ Большая красная кнопка должна быть внизу слева!")
 
--- === ОСНОВНАЯ ЛОГИКА (v10 улучшенная) ===
+-- === ЛОГИКА ===
 local function hasPizza()
     for _, v in pairs(character:GetDescendants()) do
         if v.Name:lower():find("pizza") then return true end
@@ -117,13 +59,13 @@ local function hasPizza()
     return false
 end
 
-local function findRealCustomer()
+local function findCustomer()
     for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("BasePart") and v.Transparency < 0.9 and v.Size.Y > 4 then
+        if v:IsA("BasePart") and v.Transparency < 0.8 and v.Size.Y > 3 then
             local n = v.Name:lower()
             if n:find("arrow") or n:find("target") or n:find("customer") then
-                if (v.Position - root.Position).Magnitude > 40 then
-                    return v.Position + Vector3.new(0,8,0)
+                if (v.Position - root.Position).Magnitude > 35 then
+                    return v.Position + Vector3.new(0, 8, 0)
                 end
             end
         end
@@ -131,9 +73,78 @@ local function findRealCustomer()
     return nil
 end
 
-local function superBoost()
+local function boost()
     if humanoid.Sit then
         local dir = root.CFrame.LookVector
         for _, part in pairs(character:GetDescendants()) do
             if part:IsA("BasePart") then
-                part.AssemblyLinearVelocity
+                part.AssemblyLinearVelocity = dir * 90 + Vector3.new(0, 25, 0)
+            end
+        end
+    end
+end
+
+-- Постоянный буст
+spawn(function()
+    while wait(0.15) do
+        if AUTO_FARM and humanoid.Sit then
+            boost()
+        end
+    end
+end)
+
+-- Главный цикл
+spawn(function()
+    while wait(0.9) do
+        if AUTO_FARM then
+            character = player.Character or player.CharacterAdded:Wait()
+            humanoid = character:WaitForChild("Humanoid")
+            root = character:WaitForChild("HumanoidRootPart")
+
+            -- Садимся на мопед
+            if not humanoid.Sit then
+                for _, seat in pairs(workspace:GetDescendants()) do
+                    if seat:IsA("VehicleSeat") and seat.Name:lower():find("moped") then
+                        if (seat.Position - root.Position).Magnitude < 250 then
+                            humanoid:MoveTo(seat.Position)
+                            wait(1)
+                            root.CFrame = seat.CFrame * CFrame.new(0,4,0)
+                            humanoid.Sit = true
+                            wait(0.7)
+                            break
+                        end
+                    end
+                end
+            end
+
+            if hasPizza() then
+                local pos = findCustomer()
+                if pos then
+                    local path = PathfindingService:CreatePath({AgentRadius = 4, AgentHeight = 6})
+                    path:ComputeAsync(root.Position, pos)
+                    if path.Status == Enum.PathStatus.Success then
+                        for _, wp in pairs(path:GetWaypoints()) do
+                            if not AUTO_FARM then break end
+                            humanoid:MoveTo(wp.Position)
+                            boost()
+                            humanoid.MoveToFinished:Wait(1.5)
+                        end
+                    end
+                end
+            else
+                -- Берём пиццу
+                for _, p in pairs(workspace:GetDescendants()) do
+                    if p.Name:lower():find("pizza") and (p.Position - root.Position).Magnitude < 55 then
+                        root.CFrame = p.CFrame + Vector3.new(0,4,0)
+                        firetouchinterest(p, root, 0)
+                        wait(0.25)
+                        firetouchinterest(p, root, 1)
+                        break
+                    end
+                end
+            end
+        end
+    end
+end)
+
+print("🎉 Скрипт загружен! Ищи большую кнопку с 🍕 внизу экрана.")
